@@ -1,0 +1,84 @@
+﻿
+@page "/counter"
+@using Services.UserProfile;
+@using accounting.Models;
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IHttpClientFactory ClientFactory
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@if(userProfiles == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Password</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var user in userProfiles)
+            {
+                <tr>
+                    <td>@user.usrId</td>
+                    <td>@user.usrName</td>
+                    <td>@user.usrPassword</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private int currentCount = 0;
+
+    public IEnumerable<TblUserProfile> userProfiles = Array.Empty<TblUserProfile>(); // create an empty array. add this. 
+
+    [Inject]
+    public IUserProfileRepo userProfileRepo { get; set; }
+
+    private async void IncrementCount()
+    {
+        currentCount++;
+
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            "https://localhost:44380/userprofile/TblUserProfile"); // this is the link that you wand to call using HttpRequestMessage. This is different than yours. 
+        request.Headers.Add("Accept", "application/vnd.github.v3+json"); // adding headers which is json.  
+        request.Headers.Add("User-Agent", "HttpClientFactory-Sample"); // adding the user agent. 
+
+        var client = ClientFactory.CreateClient(); // add this. 
+
+        var response = await client.SendAsync(request); // add this. 
+
+        string responseBody = "Empty"; // add this. 
+        if (response.IsSuccessStatusCode) // add this. 
+        {
+            using var responseStream = await response.Content.ReadAsStreamAsync(); // add this. 
+
+            responseBody = await response.Content.ReadAsStringAsync(); // add this. 
+             userProfiles = await JsonSerializer.DeserializeAsync<IEnumerable<TblUserProfile>>(responseStream); // add this. 
+            //userProfiles =  JsonSerializer.Deserialize<IEnumerable<TblUserProfile>>(responseBody);
+            //Console.WriteLine(userProfiles.First().UsrName);
+        } 
+
+
+
+        foreach (var name in userProfiles)
+        {
+            Console.WriteLine("=>>>>");
+            Console.WriteLine(name.usrName);
+            //Console.WriteLine(responseBody);
+        }
+    }
+}
